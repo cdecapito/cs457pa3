@@ -50,23 +50,46 @@ const int ERROR_TBL_EXISTS = -3;
 const int ERROR_TBL_NOT_EXISTS = -4;
 const int ERROR_INCORRECT_COMMAND = -5;
 
+//main implementation
 void startSimulation( string currentWorkingDirectory );
+//checks if exit command has been called
 bool exitCheck( string str );
+//checks that input string is command not garbage
 bool stringValid( string str );
+//removes semicolon for easier parsing
 bool removeSemiColon( string &input );
+//starts specific action (aka create)
 bool startEvent( string input, vector< Database> &dbms, string currentWorkingDirectory, string &currentDatabase );
+//helper function to get next word for parsing
 string getNextWord( string &input );
+//helper function to check that db exists
 bool databaseExists( vector<Database> dbms, Database dbInput, int &dbReturn );
+//removes database from vector and deletes from disk
 void removeDatabase( vector< Database > &dbms, int index );
+//removes table from disk and vector
 void removeTable( vector< Database > &dbms, int dbReturn, int tblReturn );
+//outputs errors to user
 void handleError( int errorType, string commandError, string errorContainerName );
+//helper function, converts string to LC
 void convertToLC( string &input );
+//helper function, converts string to UC
 void convertToUC( string &input );
+//gets type of query, * or attribute type
 string getQueryType( string &input );
+//returns where condition
 string getWhereCondition( string &input );
+//returns set condition for update table
 string getSetCondition( string &input );
+//removes new line chars from strings for easier parsing
 void removeNewLine( string &input );
+//returns next word without deleting word from input string
 string returnNextWord( string input );
+//checks for inner join (a comma b/w table names)
+bool checkJoin( string & input, string &LHS );
+//checks for inner join
+bool checkInnerJoin( string & input, string &LHS  );
+//checks for left outer join
+bool checkOuterJoin( string & input, string &LHS  );
 
 /**
  * @brief read_Directory method
@@ -339,6 +362,9 @@ bool startEvent( string input, vector< Database> &dbms, string currentWorkingDir
 
 	if( caseInsCompare( actionType, SELECT ) )
 	{
+
+		bool innerQuery = false;
+		bool outerLeftQuery = false;
 		Database dbTemp;
 		dbTemp.databaseName = currentDatabase;
 		databaseExists( dbms, dbTemp, dbReturn );
@@ -355,23 +381,34 @@ bool startEvent( string input, vector< Database> &dbms, string currentWorkingDir
 
 		cout << "INPUT PRE IF is |"  << input << "| " << endl; 
 
-		if( returnNextWord( input ) != "where" )
+		if( returnNextWord( input ) != "where" && !returnNextWord( input ).empty() )
 		{
-			cout << "INPUT IS " << returnNextWord( input ) << endl;
-		}
+			string table1Var; 
 
-		string cType = getWhereCondition( input );
-
-		if( !(dbms[ dbReturn ].tableExists( tblTemp.tableName, tblReturn )) )
-		{
-			errorExists = true;
-			errorType = ERROR_TBL_NOT_EXISTS;
-			errorContainerName = tblTemp.tableName;		
+			if( checkJoin( input, table1Var ) )
+			{
+				cout << "INPUT RHS " << input << endl;
+				cout << "LHS variabel " << table1Var << endl;
+			}
+			char table2Var;
+			cout << "NEXTWORD " << returnNextWord( input ) << endl;
 		}
 		else
 		{
-			tblTemp.tableSelect( currentWorkingDirectory, currentDatabase, cType, qType );
+			string cType = getWhereCondition( input );
+
+			if( !(dbms[ dbReturn ].tableExists( tblTemp.tableName, tblReturn )) )
+			{
+				errorExists = true;
+				errorType = ERROR_TBL_NOT_EXISTS;
+				errorContainerName = tblTemp.tableName;		
+			}
+			else
+			{
+				tblTemp.tableSelect( currentWorkingDirectory, currentDatabase, cType, qType );
+			}
 		}
+
 	}
 	else if( caseInsCompare( actionType, USE) )
 	{
@@ -428,9 +465,8 @@ bool startEvent( string input, vector< Database> &dbms, string currentWorkingDir
 			}
 		}
 		//table create
-		else if( containerType == TABLE_TYPE )
+		else if( caseInsCompare( containerType, TABLE_TYPE ) )
 		{
-			
 			//call create tbl function
 			Database dbTemp;
 			dbTemp.databaseName = currentDatabase;
@@ -438,38 +474,31 @@ bool startEvent( string input, vector< Database> &dbms, string currentWorkingDir
 			databaseExists( dbms, dbTemp, dbReturn );
 			
 			// make sure the input does not specify multiple tables 
-			size_t pos = input.find(" (");
+			size_t pos = input.find("(");
 			string temp = input.substr(0, pos);
-			if( temp.find(" ") != string::npos )
+			removeLeadingWS( temp );
+
+			//get table name 
+			Table tblTemp;
+			tblTemp.tableName = getNextWord( temp );
+
+			//check that table exists
+			if( !(dbms[ dbReturn ].tableExists( tblTemp.tableName, tblReturn )) )
 			{
-				errorExists = true;
-				errorType = ERROR_INCORRECT_COMMAND;
-				errorContainerName = originalInput;
+				//check that table attributes are not the same
+				tblTemp.tableCreate( currentWorkingDirectory, currentDatabase, tblTemp.tableName, input, attrError );
+				if( !attrError  )
+				{
+					//if it doesnt then push table onto database	
+					dbms[ dbReturn ].databaseTable.push_back( tblTemp );
+				}
 			}
 			else
 			{
-				//get table name 
-				Table tblTemp;
-				tblTemp.tableName = getNextWord( input );
-
-				//check that table exists
-				if( !(dbms[ dbReturn ].tableExists( tblTemp.tableName, tblReturn )) )
-				{
-					//check that table attributes are not the same
-					tblTemp.tableCreate( currentWorkingDirectory, currentDatabase, tblTemp.tableName, input, attrError );
-					if( !attrError  )
-					{
-						//if it doesnt then push table onto database	
-						dbms[ dbReturn ].databaseTable.push_back( tblTemp );
-					}
-				}
-				else
-				{
-					//if it does than handle error
-				 	errorExists = true;
-				 	errorType = ERROR_TBL_EXISTS;
-				 	errorContainerName = tblTemp.tableName;	
-				}
+				//if it does than handle error
+			 	errorExists = true;
+			 	errorType = ERROR_TBL_EXISTS;
+			 	errorContainerName = tblTemp.tableName;	
 			}
 		}
 		else
@@ -1013,4 +1042,29 @@ string returnNextWord( string input )
 	//takes first word and returns it
 	string nextWord = input.substr( 0, input.find(" ") );
 	return nextWord;
+}
+
+bool checkJoin( string & input, string &LHS )
+{
+	//check input for comma
+	size_t found = input.find( ',' );
+	if( found != input.npos )
+	{
+		LHS = input.substr(0, found );
+		input.e1234rase( 0, found + 1 );
+		removeLeadingWS( input );
+		return true;
+	}
+	return false;
+}
+
+bool checkInnerJoin( string & input, string &LHS  )
+{
+
+}
+
+//checks for left outer join
+bool checkOuterJoin( string & input, string &LHS  )
+{
+
 }
