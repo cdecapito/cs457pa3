@@ -90,6 +90,10 @@ bool checkJoin( string & input, string &LHS );
 bool checkInnerJoin( string & input, string &LHS  );
 //checks for left outer join
 bool checkOuterJoin( string & input, string &LHS  );
+//helper function, gets the table variable
+string getTableVariable( string &input );
+//helper function, gets LHS and stores RHS of = join into input
+string returnLHSJoinComparison( string &input );
 
 /**
  * @brief read_Directory method
@@ -381,18 +385,60 @@ bool startEvent( string input, vector< Database> &dbms, string currentWorkingDir
 
 		cout << "INPUT PRE IF is |"  << input << "| " << endl; 
 
+		//join parsing
 		if( returnNextWord( input ) != "where" && !returnNextWord( input ).empty() )
 		{
 			string table1Var; 
+			string table2Var;
+			string table1Attr;
+			string table2Attr;
+			string joinCondition;
+			Table tblTemp2;
 
 			if( checkJoin( input, table1Var ) )
 			{
-				cout << "INPUT RHS " << input << endl;
-				cout << "LHS variabel " << table1Var << endl;
+				tblTemp2.tableName = getNextWord( input );
+				table2Var = getNextWord( input );
+
+				joinCondition = getWhereCondition( input );
+
+				string LHS = returnLHSJoinComparison( joinCondition );
+
+				string tempVar1 = getTableVariable( LHS );
+				string tempVar2 = getTableVariable( joinCondition );
+
+				if( tempVar1 == table1Var && tempVar2 == table2Var )
+				{
+					table1Attr = LHS;
+					table2Attr = joinCondition;
+				}
+				else
+				{
+					table1Attr = joinCondition;
+					table2Attr = LHS;
+				}
+
+				if( !dbms[ dbReturn ].tableExists( tblTemp.tableName, tblReturn ) || 
+					!dbms[ dbReturn ].tableExists( tblTemp2.tableName, tblReturn ) )
+				{
+					errorExists = true;
+					errorType = ERROR_TBL_NOT_EXISTS;
+					errorContainerName = tblTemp.tableName + " and " + tblTemp2.tableName;	
+				}
+				else
+				{
+					cout << "TableNAMe1 " << tblTemp.tableName << endl;
+					cout << "Table1 attr" << table1Attr << endl;
+					cout << "table1 variable" << table1Var << endl;
+
+					cout << "TableName2 " << tblTemp2.tableName << endl;
+					cout << "Table2 attr" << table2Attr << endl;	
+					cout << "Table2 variable " << table2Var << endl;
+					tblTemp.innerJoin( currentWorkingDirectory, currentDatabase, tblTemp.tableName, table1Attr, tblTemp2.tableName , table2Attr );
+				}
 			}
-			char table2Var;
-			cout << "NEXTWORD " << returnNextWord( input ) << endl;
 		}
+		//normal query parsing and output
 		else
 		{
 			string cType = getWhereCondition( input );
@@ -1044,6 +1090,7 @@ string returnNextWord( string input )
 	return nextWord;
 }
 
+
 bool checkJoin( string & input, string &LHS )
 {
 	//check input for comma
@@ -1051,7 +1098,7 @@ bool checkJoin( string & input, string &LHS )
 	if( found != input.npos )
 	{
 		LHS = input.substr(0, found );
-		input.e1234rase( 0, found + 1 );
+		input.erase( 0, found + 1 );
 		removeLeadingWS( input );
 		return true;
 	}
@@ -1060,11 +1107,40 @@ bool checkJoin( string & input, string &LHS )
 
 bool checkInnerJoin( string & input, string &LHS  )
 {
-
+	return false;
 }
 
 //checks for left outer join
 bool checkOuterJoin( string & input, string &LHS  )
 {
+	return false;
+}
 
+string getTableVariable( string &input )
+{
+	string tblVar;
+	size_t found = input.find( '.' );
+	if( found != input.npos )
+	{
+		tblVar = input.substr( 0, found );
+		input.erase( 0, found + 1 );
+		removeLeadingWS( input );
+	}
+
+	return tblVar;
+}
+
+string returnLHSJoinComparison( string &input )
+{
+	string LHS;
+	size_t found = input.find( '=' );
+	if ( found != input.npos )
+	{
+		LHS = input.substr( 0, found );
+		removeLeadingWS( LHS );
+
+		input.erase( 0, found + 1 );
+		removeLeadingWS( input );
+	}
+	return LHS;
 }

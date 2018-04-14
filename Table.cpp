@@ -1636,6 +1636,134 @@ bool indexExists( int i, vector< int > indexCounter )
 }
 
 
+void Table::innerJoin( string currentWorkingDirectory, string currentDatabase, string table1Name, string table1Attr, string table2Name, string table2Attr )
+{
+	vector < Attribute > attributes1;
+	vector < string * > table1Tuples;
+	vector < Attribute > attributes2;
+	vector < string * > table2Tuples;
+	string filePath = "/" + currentDatabase + "/";
+	string temp;
+
+
+	//open table 1 file and read contents and attributes
+	ifstream fin( (currentWorkingDirectory + filePath + table1Name ).c_str() );
+
+	//get table 1 attributes
+	getline( fin, temp );
+
+	while( !temp.empty() )
+	{
+		Attribute tempAttribute;
+		tempAttribute.attributeName = getNextWord( temp );
+		tempAttribute.attributeType = getUntilTab( temp );
+		cout << "NAME " << tempAttribute.attributeName << endl;
+		cout << "TYPE " << tempAttribute.attributeType << endl;
+		attributes1.push_back( tempAttribute );
+	}
+
+	//get tuples
+	int numTbl1Attr = attributes1.size();
+	//go till end of file
+	while( !fin.eof() )
+	{
+		//declare string array of size number of attributes
+		string * tuple = new string [ attributes1.size() ];
+		//get line
+		getline( fin, temp );
+		//for each tuple, get each element 
+		for( int index = 0; index < numTbl1Attr; index++ )
+		{
+			tuple[ index ] = getUntilTab( temp );
+		}
+		//push tuple onto vector
+		table1Tuples.push_back( tuple );
+	}
+	fin.close();
+
+	//open table 3 file and read contents and attributes
+	ifstream fread( (currentWorkingDirectory + filePath + table2Name ).c_str() );
+
+	getline( fread, temp );
+
+	//get attributes for table 2
+	while( !temp.empty() )
+	{
+		Attribute tempAttribute;
+		tempAttribute.attributeName = getNextWord( temp );
+		tempAttribute.attributeType = getUntilTab( temp );
+		attributes2.push_back( tempAttribute );
+	}
+
+	//get tuples
+	int numTbl2Attr = attributes2.size();
+	//go till end of file
+	while( !fread.eof() )
+	{
+		//declare string array of size number of attributes
+		string * tuple = new string [ attributes2.size() ];
+		//get line
+		getline( fread, temp );
+		//for each tuple, get each element 
+		for( int index = 0; index < numTbl2Attr; index++ )
+		{
+			tuple[ index ] = getUntilTab( temp );
+		}
+		//push tuple onto vector
+		table2Tuples.push_back( tuple );
+	}
+	fread.close();
+
+	int tbl1Size = table1Tuples.size();
+	int tbl2Size = table2Tuples.size();
+	int tbl1AttrOccur = findAttrOccur( attributes1, table1Attr );
+	int tbl2AttrOccur = findAttrOccur( attributes2, table2Attr );
+	vector <int> tbl2JoinIndexes;
+
+	//output attributes
+	int attrSize1 = attributes1.size();
+	int attrSize2 = attributes2.size();
+
+	cout << "-- ";
+	for( int index = 0; index < attrSize1; index++ )
+	{
+		cout << attributes1[ index ].attributeName << " ";
+		cout << attributes1[ index ].attributeType << " | ";
+	}
+
+
+	for( int index = 0; index < attrSize2; index++ )
+	{
+		cout << attributes2[ index ].attributeName << " ";
+		cout << attributes2[ index ].attributeType; 
+		if( index != attrSize2 - 1 )
+		{
+			cout << " | ";
+		}
+	}
+	cout << endl;
+
+	for( int tuple1Count = 0; tuple1Count < tbl1Size; tuple1Count++ )
+	{
+		bool joinFound = false;
+		for( int tuple2Count = 0; tuple2Count < tbl2Size; tuple2Count++ )
+		{
+		
+			if( table1Tuples[ tuple1Count ][ tbl1AttrOccur ] == 
+				table2Tuples[ tuple2Count ][ tbl2AttrOccur ] )
+			{
+				joinFound = true;
+				tbl2JoinIndexes.push_back( tuple2Count );
+			}
+		}
+		if( joinFound )
+		{
+			//tbl1JoinIndexes.push_back( tuple1Count );
+		//	cout << "table1 match " <<  tuple1Count << endl;
+		}
+	}
+
+}
 
 
 // Terminating precompiler directives  ////////////////////////////////////////
