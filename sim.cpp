@@ -1211,35 +1211,21 @@ bool checkJoin( string & input, string &LHS )
  *          
  * @pre 
  *
- * @post String is now in lowercase
+ * @post 
  *
  * @par Algorithm 
- *      parse through the string and converts toLower using string lib function
+ *      parse through the string and look for occurance of inner join and return lhs and rhs
  * 
  * @exception None
  *
  * @param [in] string &input
  *
- * @return None
+ * @return bool, true if inner join, false otherwise
  *
  * @note None
  */
 bool checkInnerJoin( string & input, string &LHS  )
 {
-	/*
-	size_t found = input.find( "inner join" );
-	if( found != input.npos )
-	{
-		LHS = input.substr( 0, found );
-		removeLeadingWS( LHS );
-
-		input.erase( 0, found + 10 );
-		removeLeadingWS( input );
-		return true;
-	}
-	return false;
-*/
-
 	bool innerOccurs = false;
 	int found = 0;
 	int inputSize = input.size();
@@ -1262,7 +1248,7 @@ bool checkInnerJoin( string & input, string &LHS  )
 			found = index;
 		}
 	}
-cout  << "occurs " << innerOccurs << endl;
+
 	if( innerOccurs )
 	{
 		LHS = input.substr( 0, found );
@@ -1275,11 +1261,61 @@ cout  << "occurs " << innerOccurs << endl;
 	return false;
 }
 
-//checks for left outer join
+/**
+ * @brief 
+ *
+ * @details 
+ *          
+ * @pre 
+ *
+ * @post 
+ *
+ * @par Algorithm 
+ *     
+ * 
+ * @exception None
+ *
+ * @param [in] 
+ *
+ * @return 
+ *
+ * @note None
+ */
 bool checkOuterJoin( string & input, string &LHS  )
 {
-	size_t found = input.find( "left outer join" );
-	if( found != input.npos )
+	bool outerOccurs = false;
+	int found = 0;
+	int inputSize = input.size();
+
+	for( int index = 0; index < inputSize; index++ )
+	{
+		//check that i is f or F  
+		if( ( input[ index ] == 'l' || input[ index ] == 'L' ) &&
+			( input[ index + 1 ] == 'e' || input[ index + 1 ] == 'E' ) && 
+			( input[ index + 2 ] == 'f' || input[ index + 2 ] == 'F' ) &&
+			( input[ index + 3 ] == 't' || input[ index + 3 ] == 'T' ) && 
+
+			  input[ index + 4 ] == ' ' &&
+
+			( input[ index + 5 ] == 'o' || input[ index + 5 ] == 'O' ) &&
+			( input[ index + 6 ] == 'u' || input[ index + 6 ] == 'U' ) && 
+			( input[ index + 7 ] == 't' || input[ index + 7 ] == 'T' ) &&
+			( input[ index + 8 ] == 'e' || input[ index + 8 ] == 'E' ) && 
+			( input[ index + 9 ] == 'r' || input[ index + 9 ] == 'R' ) &&
+
+			  input[ index + 10 ] == ' ' && 
+
+			( input[ index + 11 ] == 'j' || input[ index + 11 ] == 'J' ) &&
+			( input[ index + 12 ] == 'o' || input[ index + 12 ] == 'O' ) && 
+			( input[ index + 13 ] == 'i' || input[ index + 13 ] == 'I' ) &&
+			( input[ index + 14 ] == 'n' || input[ index + 14 ] == 'N' ))
+		{
+			outerOccurs = true;
+			found = index;
+		}
+	}
+
+	if( outerOccurs )
 	{
 		LHS = input.substr( 0, found );
 		removeLeadingWS( LHS );
@@ -1291,6 +1327,27 @@ bool checkOuterJoin( string & input, string &LHS  )
 	return false;
 }
 
+
+/**
+ * @brief 
+ *
+ * @details 
+ *          
+ * @pre 
+ *
+ * @post 
+ *
+ * @par Algorithm 
+ *     
+ * 
+ * @exception None
+ *
+ * @param [in] 
+ *
+ * @return 
+ *
+ * @note None
+ */
 string getTableVariable( string &input )
 {
 	string tblVar;
@@ -1307,6 +1364,27 @@ string getTableVariable( string &input )
 	return tblVar;
 }
 
+
+/**
+ * @brief 
+ *
+ * @details 
+ *          
+ * @pre 
+ *
+ * @post 
+ *
+ * @par Algorithm 
+ *     
+ * 
+ * @exception None
+ *
+ * @param [in] 
+ *
+ * @return 
+ *
+ * @note None
+ */
 string returnLHSJoinComparison( string &input )
 {
 	string LHS;
@@ -1323,12 +1401,45 @@ string returnLHSJoinComparison( string &input )
 }
 
 
-
+/**
+ * @brief 
+ *
+ * @details 
+ *          
+ * @pre 
+ *
+ * @post 
+ *
+ * @par Algorithm 
+ *     
+ * 
+ * @exception None
+ *
+ * @param [in] 
+ *
+ * @return 
+ *
+ * @note None
+ */
 string getOnCondition( string &input )
 {
+	bool onOccurs = false;
+	int found = 0;
+	int inputSize = input.size();
 	string LHS;
-	size_t found = input.find( "on " );
-	if( found != input.npos )
+
+	for( int index = 0; index < inputSize; index++ )
+	{
+		//check that i is f or F  
+		if( ( input[ index ] == 'o' || input[ index ] == 'O' ) &&
+			( input[ index + 1 ] == 'n' || input[ index + 1 ] == 'N' ) )
+		{
+			onOccurs = true;
+			found = index;
+		}
+	}
+
+	if( onOccurs )
 	{
 		LHS = input.substr( found + 2, input.size() - 1 );
 		removeLeadingWS( LHS );

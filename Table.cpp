@@ -1635,7 +1635,26 @@ bool indexExists( int i, vector< int > indexCounter )
 	return false;
 }
 
-
+/**
+ * @brief 
+ *
+ * @details 
+ *          
+ * @pre 
+ *
+ * @post 
+ *
+ * @par Algorithm 
+ *     
+ * 
+ * @exception None
+ *
+ * @param [in] 
+ *
+ * @return 
+ *
+ * @note None
+ */
 void Table::innerJoin( string currentWorkingDirectory, string currentDatabase, string table1Name, string table1Attr, string table2Name, string table2Attr )
 {
 	vector < Attribute > attributes1;
@@ -1805,7 +1824,26 @@ void Table::innerJoin( string currentWorkingDirectory, string currentDatabase, s
 
 }
 
-
+/**
+ * @brief 
+ *
+ * @details 
+ *          
+ * @pre 
+ *
+ * @post 
+ *
+ * @par Algorithm 
+ *     
+ * 
+ * @exception None
+ *
+ * @param [in] 
+ *
+ * @return 
+ *
+ * @note None
+ */
 void Table::outerJoin( string currentWorkingDirectory, string currentDatabase, string table1Name, string table1Attr, string table2Name, string table2Attr )
 {
 	vector < Attribute > attributes1;
