@@ -94,6 +94,8 @@ bool checkOuterJoin( string & input, string &LHS  );
 string getTableVariable( string &input );
 //helper function, gets LHS and stores RHS of = join into input
 string returnLHSJoinComparison( string &input );
+//helper parse function, gets LHS 
+string getOnCondition( string &input );
 
 /**
  * @brief read_Directory method
@@ -367,8 +369,6 @@ bool startEvent( string input, vector< Database> &dbms, string currentWorkingDir
 	if( caseInsCompare( actionType, SELECT ) )
 	{
 
-		bool innerQuery = false;
-		bool outerLeftQuery = false;
 		Database dbTemp;
 		dbTemp.databaseName = currentDatabase;
 		databaseExists( dbms, dbTemp, dbReturn );
@@ -381,9 +381,6 @@ bool startEvent( string input, vector< Database> &dbms, string currentWorkingDir
 
 		Table tblTemp;
 		tblTemp.tableName = tName;
-
-
-		cout << "INPUT PRE IF is |"  << input << "| " << endl; 
 
 		//join parsing
 		if( returnNextWord( input ) != "where" && !returnNextWord( input ).empty() )
@@ -417,7 +414,6 @@ bool startEvent( string input, vector< Database> &dbms, string currentWorkingDir
 					table1Attr = joinCondition;
 					table2Attr = LHS;
 				}
-
 				if( !dbms[ dbReturn ].tableExists( tblTemp.tableName, tblReturn ) || 
 					!dbms[ dbReturn ].tableExists( tblTemp2.tableName, tblReturn ) )
 				{
@@ -427,16 +423,78 @@ bool startEvent( string input, vector< Database> &dbms, string currentWorkingDir
 				}
 				else
 				{
-					cout << "TableNAMe1 " << tblTemp.tableName << endl;
-					cout << "Table1 attr" << table1Attr << endl;
-					cout << "table1 variable" << table1Var << endl;
-
-					cout << "TableName2 " << tblTemp2.tableName << endl;
-					cout << "Table2 attr" << table2Attr << endl;	
-					cout << "Table2 variable " << table2Var << endl;
 					tblTemp.innerJoin( currentWorkingDirectory, currentDatabase, tblTemp.tableName, table1Attr, tblTemp2.tableName , table2Attr );
 				}
 			}
+			else if( checkInnerJoin( input, table1Var ) )
+			{
+				tblTemp2.tableName = getNextWord( input );
+				table2Var = getNextWord( input );
+
+				joinCondition = getOnCondition( input );
+
+				string LHS = returnLHSJoinComparison( joinCondition );
+
+				string tempVar1 = getTableVariable( LHS );
+				string tempVar2 = getTableVariable( joinCondition );
+
+				if( tempVar1 == table1Var && tempVar2 == table2Var )
+				{
+					table1Attr = LHS;
+					table2Attr = joinCondition;
+				}
+				else
+				{
+					table1Attr = joinCondition;
+					table2Attr = LHS;
+				}
+				if( !dbms[ dbReturn ].tableExists( tblTemp.tableName, tblReturn ) || 
+					!dbms[ dbReturn ].tableExists( tblTemp2.tableName, tblReturn ) )
+				{
+					errorExists = true;
+					errorType = ERROR_TBL_NOT_EXISTS;
+					errorContainerName = tblTemp.tableName + " and " + tblTemp2.tableName;	
+				}
+				else
+				{
+					tblTemp.innerJoin( currentWorkingDirectory, currentDatabase, tblTemp.tableName, table1Attr, tblTemp2.tableName , table2Attr );
+				}
+			}
+			else if( checkOuterJoin( input, table1Var ) )
+			{
+				tblTemp2.tableName = getNextWord( input );
+				table2Var = getNextWord( input );
+
+				joinCondition = getOnCondition( input );
+
+				string LHS = returnLHSJoinComparison( joinCondition );
+
+				string tempVar1 = getTableVariable( LHS );
+				string tempVar2 = getTableVariable( joinCondition );
+
+				if( tempVar1 == table1Var && tempVar2 == table2Var )
+				{
+					table1Attr = LHS;
+					table2Attr = joinCondition;
+				}
+				else
+				{
+					table1Attr = joinCondition;
+					table2Attr = LHS;
+				}
+				if( !dbms[ dbReturn ].tableExists( tblTemp.tableName, tblReturn ) || 
+					!dbms[ dbReturn ].tableExists( tblTemp2.tableName, tblReturn ) )
+				{
+					errorExists = true;
+					errorType = ERROR_TBL_NOT_EXISTS;
+					errorContainerName = tblTemp.tableName + " and " + tblTemp2.tableName;	
+				}
+				else
+				{
+					tblTemp.outerJoin( currentWorkingDirectory, currentDatabase, tblTemp.tableName, table1Attr, tblTemp2.tableName , table2Attr );
+				}
+			}
+
 		}
 		//normal query parsing and output
 		else
@@ -992,8 +1050,8 @@ string getWhereCondition( string &input )
 		if( ( input[ index ] == 'w' || input[ index ] == 'W' ) &&
 			( input[ index + 1 ] == 'h' || input[ index + 1 ] == 'H' ) && 
 			( input[ index + 2 ] == 'e' || input[ index + 2 ] == 'E' ) &&
-			( input[ index + 3 ] == 'r' || input[ index + 3] == 'R' ) && 
-			( input[ index + 4 ] == 'e' || input[ index + 3] == 'E' ))
+			( input[ index + 3 ] == 'r' || input[ index + 3 ] == 'R' ) && 
+			( input[ index + 4 ] == 'e' || input[ index + 4 ] == 'E' ))
 		{
 			whereOccurs = true;
 			whereOccurance = index;
@@ -1079,7 +1137,26 @@ void removeNewLine( string &input )
 }
 
 
-
+/**
+ * @brief returnNextWord
+ *
+ * @details returns next word without deleting anything from input string
+ *          
+ * @pre input is not empty
+ *
+ * @post first word is returned
+ *
+ * @par Algorithm 
+ *      get string until first space appears
+ * 
+ * @exception None
+ *
+ * @param [in] string input provides input string to parse
+ *
+ * @return string
+ *
+ * @note None
+ */
 string returnNextWord( string input )
 {
 	//doesnt actually remove WS, just modifies local input string
@@ -1090,7 +1167,26 @@ string returnNextWord( string input )
 	return nextWord;
 }
 
-
+/**
+ * @brief checkJoin
+ *
+ * @details checks for inner join without using inner join keyword
+ *          
+ * @pre nothing
+ *
+ * @post returns true if default join
+ *
+ * @par Algorithm 
+ *      parse through the string and find , and return LHS and RHS
+ * 
+ * @exception None
+ *
+ * @param [in] string &input
+ *
+ * @return bool
+ *
+ * @note None
+ */
 bool checkJoin( string & input, string &LHS )
 {
 	//check input for comma
@@ -1098,6 +1194,8 @@ bool checkJoin( string & input, string &LHS )
 	if( found != input.npos )
 	{
 		LHS = input.substr(0, found );
+		removeLeadingWS( LHS );
+
 		input.erase( 0, found + 1 );
 		removeLeadingWS( input );
 		return true;
@@ -1105,14 +1203,91 @@ bool checkJoin( string & input, string &LHS )
 	return false;
 }
 
+
+/**
+ * @brief checkInnerJoin
+ *
+ * @details checks that query is inner join
+ *          
+ * @pre 
+ *
+ * @post String is now in lowercase
+ *
+ * @par Algorithm 
+ *      parse through the string and converts toLower using string lib function
+ * 
+ * @exception None
+ *
+ * @param [in] string &input
+ *
+ * @return None
+ *
+ * @note None
+ */
 bool checkInnerJoin( string & input, string &LHS  )
 {
+	/*
+	size_t found = input.find( "inner join" );
+	if( found != input.npos )
+	{
+		LHS = input.substr( 0, found );
+		removeLeadingWS( LHS );
+
+		input.erase( 0, found + 10 );
+		removeLeadingWS( input );
+		return true;
+	}
+	return false;
+*/
+
+	bool innerOccurs = false;
+	int found = 0;
+	int inputSize = input.size();
+
+	for( int index = 0; index < inputSize; index++ )
+	{
+		//check that i is f or F  
+		if( ( input[ index ] == 'i' || input[ index ] == 'I' ) &&
+			( input[ index + 1 ] == 'n' || input[ index + 1 ] == 'N' ) && 
+			( input[ index + 2 ] == 'n' || input[ index + 2 ] == 'N' ) &&
+			( input[ index + 3 ] == 'e' || input[ index + 3] == 'E' ) && 
+			( input[ index + 4 ] == 'r' || input[ index + 4] == 'R' ) &&
+			  input[ index + 5 ] == ' ' &&
+			( input[ index + 6 ] == 'j' || input[ index + 6 ] == 'J' ) && 
+			( input[ index + 7 ] == 'o' || input[ index + 7 ] == 'O' ) &&
+			( input[ index + 8 ] == 'i' || input[ index + 8 ] == 'I' ) && 
+			( input[ index + 9 ] == 'n' || input[ index + 9 ] == 'N' ))
+		{
+			innerOccurs = true;
+			found = index;
+		}
+	}
+cout  << "occurs " << innerOccurs << endl;
+	if( innerOccurs )
+	{
+		LHS = input.substr( 0, found );
+		removeLeadingWS( LHS );
+
+		input.erase( 0, found + 10 );
+		removeLeadingWS( input );
+		return true;
+	}
 	return false;
 }
 
 //checks for left outer join
 bool checkOuterJoin( string & input, string &LHS  )
 {
+	size_t found = input.find( "left outer join" );
+	if( found != input.npos )
+	{
+		LHS = input.substr( 0, found );
+		removeLeadingWS( LHS );
+
+		input.erase( 0, found + 15 );
+		removeLeadingWS( input );
+		return true;
+	}
 	return false;
 }
 
@@ -1123,6 +1298,8 @@ string getTableVariable( string &input )
 	if( found != input.npos )
 	{
 		tblVar = input.substr( 0, found );
+		removeLeadingWS( tblVar );
+
 		input.erase( 0, found + 1 );
 		removeLeadingWS( input );
 	}
@@ -1140,6 +1317,23 @@ string returnLHSJoinComparison( string &input )
 		removeLeadingWS( LHS );
 
 		input.erase( 0, found + 1 );
+		removeLeadingWS( input );
+	}
+	return LHS;
+}
+
+
+
+string getOnCondition( string &input )
+{
+	string LHS;
+	size_t found = input.find( "on " );
+	if( found != input.npos )
+	{
+		LHS = input.substr( found + 2, input.size() - 1 );
+		removeLeadingWS( LHS );
+
+		input.erase( found, input.size() - 1 );
 		removeLeadingWS( input );
 	}
 	return LHS;
