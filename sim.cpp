@@ -24,10 +24,13 @@
 #include <string.h>
 #include <cstdlib>
 #include <cstring>
+#include <cctype>
 #include <fstream>
 #include <stdlib.h>
 #include <unistd.h>
 #include "Database.cpp"
+
+#include <stdio.h>
 
 using namespace std;
 
@@ -96,6 +99,8 @@ string getTableVariable( string &input );
 string returnLHSJoinComparison( string &input );
 //helper parse function, gets LHS 
 string getOnCondition( string &input );
+
+void removeCarriageReturn( string &input );
 
 /**
  * @brief read_Directory method
@@ -209,19 +214,26 @@ void startSimulation( string currentWorkingDirectory )
 	}
 
 	bool simulationEnd = false;
-
 	do{
+		
 		getline( cin, input );
-		//cout << input << endl;
 
+		//converts dos to unix file by removing file \r
+		removeCarriageReturn( input );
+		
 		//check that program is not to be ended
 		simulationEnd = exitCheck( input );
+	
+		//cout << "VALID " << stringValid( input ) << endl;
 		//check that the line is valid
+		
 		if( !simulationEnd && stringValid( input )  && !removeSemiColon( input ) )
 		{
 			getline( cin, temp, ';' );
 			input = input + temp;
+			removeCarriageReturn( input );
 			removeNewLine( input );
+			removeLeadingWS( input );
 		}
 		
 		//helper function to remove semi colon
@@ -249,7 +261,17 @@ void startSimulation( string currentWorkingDirectory )
 bool stringValid( string str )
 {
 	//check that it is not a comment or empty space
-	if( ( str[ 0 ] == '-' && str[ 1 ] == '-' ) || str == "" )
+	int strLen = str.length();
+	bool valid = false;
+	for( int index = 0; index < strLen; index++ )
+	{
+		if( isspace( str[ index ] ) == 0 )
+		{
+			valid = true;
+		}
+	}
+
+	if( ( str[ 0 ] == '-' && str[ 1 ] == '-' ) || !valid )
 	{
 		return false;
 	}
@@ -260,6 +282,7 @@ bool stringValid( string str )
 bool exitCheck( string str )
 {
 	convertToUC( str );
+	removeLeadingWS( str );
 	if( str == EXIT )
 	{
 		return true;
@@ -291,7 +314,6 @@ bool exitCheck( string str )
 bool removeSemiColon( string &input )
 {
 	//CHECK IF SEMI EXISTS
-	int semiIndex = 0;
 	int strLen = input.length();
 	bool semiExists = false;
 	//find where ; exists if it does exist
@@ -300,11 +322,10 @@ bool removeSemiColon( string &input )
 		if( input[ index ] == ';' )
 		{
 			semiExists = true;
-			semiIndex = index;
 		}
 	}
 	//if semi colon does not exist or is not at the end
-	if( semiExists == false || semiIndex != ( strLen - 1 ) )
+	if( semiExists == false )
 	{
 		//if input is exit then we are fine
 		string temp = input;
@@ -319,6 +340,7 @@ bool removeSemiColon( string &input )
 	{
 		//if semi colon is at end then erase it
 		input.erase( input.find( ';' ) );
+		//cout << "found and now looks like: " << input << endl;
 		return true;
 	}
 }
@@ -1448,4 +1470,17 @@ string getOnCondition( string &input )
 		removeLeadingWS( input );
 	}
 	return LHS;
+}
+
+
+void removeCarriageReturn( string &input )
+{
+	int strLen = input.length();
+	for( int index = 0; index < strLen; index++ )
+	{
+		if( input[ index ] == '\r' )
+		{
+			input[ index ] = ' ';
+		}
+	}	
 }

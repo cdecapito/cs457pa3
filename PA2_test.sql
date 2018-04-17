@@ -29,8 +29,6 @@ select * from Product;
 delete from product 
 where name = 'Gizmo';
 
-select * from Product;
-
 delete from product 
 where price > 150;
 
